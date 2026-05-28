@@ -53,8 +53,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+# lib/  <-- Removed to avoid ignoring Next.js lib folder
+# lib64/ <-- Removed
 parts/
 sdist/
 var/
@@ -90,3 +90,5 @@ graphify-out/
 # Developer Resources
 dev_resources/
 
+vercel.log
+backend/run.py
