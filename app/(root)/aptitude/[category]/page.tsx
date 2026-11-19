@@ -3,8 +3,9 @@ import AptitudeTest from "@/components/AptitudeTest";
 import { getCurrentUser } from "@/lib/actions/auth.action";
 import { generateAptitudeQuestions } from "@/lib/actions/interview.action";
 import { redirect } from "next/navigation";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ChevronLeft } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 const AptitudeTestPage = async ({ params }: RouteParams) => {
   const { category } = await params;
@@ -16,10 +17,12 @@ const AptitudeTestPage = async ({ params }: RouteParams) => {
   
   if (!meta) {
     return (
-      <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
-        <h2 className="text-2xl font-bold text-white">Category Not Found</h2>
-        <p className="text-gray-400">The aptitude category &quot;{category}&quot; does not exist.</p>
-        <Link href="/aptitude" className="btn-primary mt-4">Back to Categories</Link>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 text-center">
+        <h2 className="text-xl font-bold text-white">Category Not Found</h2>
+        <p className="text-slate-400 text-sm">The aptitude category &quot;{category}&quot; does not exist.</p>
+        <Button asChild className="btn-primary mt-2">
+          <Link href="/aptitude">Return to Assessment Hub</Link>
+        </Button>
       </div>
     );
   }
@@ -29,29 +32,50 @@ const AptitudeTestPage = async ({ params }: RouteParams) => {
 
   if (!success || !questions || questions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] gap-6 max-w-lg mx-auto text-center">
-        <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
-          <AlertCircle className="w-8 h-8" />
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-5 max-w-md mx-auto text-center">
+        <div className="size-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
+          <AlertCircle className="size-7" />
         </div>
-        <h2 className="text-2xl font-bold text-white">Failed to generate test</h2>
-        <p className="text-gray-400">
-          There was an error generating the AI questions: <br />
-          <span className="text-red-400 text-sm mt-2 block">{error || "Unknown error"}</span>
-        </p>
-        <div className="flex gap-4 mt-4">
-          <Link href="/aptitude" className="btn-secondary">Back</Link>
-          <a href={`/aptitude/${category}`} className="btn-primary">Try Again</a>
+        <div>
+          <h2 className="text-xl font-bold text-white">Generation Unavailable</h2>
+          <p className="text-slate-400 text-sm mt-1.5 leading-relaxed">
+            There was an error generating AI questions. Please verify your backend connection or retry in a moment.
+          </p>
+          {error && (
+            <p className="text-red-400 font-mono text-xs mt-2 px-3 py-1.5 rounded bg-red-500/10 border border-red-500/20 text-left">
+              {error}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <Button asChild variant="outline" className="btn-secondary">
+            <Link href="/aptitude">Back to Hub</Link>
+          </Button>
+          <Button asChild className="btn-primary">
+            <a href={`/aptitude/${category}`}>Retry Generation</a>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-8 py-6 w-full">
-      <div className="flex flex-col items-center text-center gap-2 mb-4">
-        <span className="text-4xl">{meta.icon}</span>
-        <h1 className="text-3xl font-bold text-white">{meta.label} Test</h1>
-        <p className="text-gray-400">Answer all {questions.length} questions. You have 30 minutes.</p>
+    <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full">
+      {/* ── Runner Breadcrumb & Header ── */}
+      <div className="flex items-center justify-between">
+        <Link
+          href="/aptitude"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
+        >
+          <ChevronLeft className="size-4" />
+          <span>Exit to Hub</span>
+        </Link>
+        <div className="flex items-center gap-2">
+          <span className="text-base">{meta.icon}</span>
+          <span className="text-xs uppercase font-semibold tracking-wider text-slate-300">
+            {meta.label}
+          </span>
+        </div>
       </div>
 
       <AptitudeTest

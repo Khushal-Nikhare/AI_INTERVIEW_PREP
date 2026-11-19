@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, MinusCircle, Lightbulb } from "lucide-react";
 
 interface AptitudeResultCardProps {
   question: string;
@@ -20,50 +20,49 @@ const AptitudeResultCard = ({
   const isCorrect = userAnswer === correctAnswer;
   const isSkipped = !userAnswer;
 
+  const cardBorder = isCorrect
+    ? "border-emerald-500/30 bg-slate-900/70"
+    : isSkipped
+    ? "border-slate-800 bg-slate-900/50"
+    : "border-red-500/30 bg-slate-900/70";
+
   return (
-    <div
-      className={`border rounded-2xl p-6 flex flex-col gap-4 ${
-        isCorrect
-          ? "bg-green-500/5 border-green-500/20"
-          : isSkipped
-          ? "bg-gray-500/5 border-gray-500/20"
-          : "bg-red-500/5 border-red-500/20"
-      }`}
-    >
-      {/* Header */}
+    <div className={`rounded-xl border p-6 flex flex-col gap-4 shadow-xs ${cardBorder}`}>
+      {/* Question Header & Status Badge */}
       <div className="flex items-start justify-between gap-4">
-        <p className="text-base font-medium text-white">
-          <span className="text-gray-400 mr-2">{index + 1}.</span>
+        <h3 className="text-sm sm:text-base font-medium text-slate-100 leading-relaxed">
+          <span className="text-slate-400 font-semibold mr-2">{index + 1}.</span>
           {question}
-        </p>
+        </h3>
+
         <div className="shrink-0">
           {isCorrect ? (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-xs font-semibold">
-              <CheckCircle2 className="w-4 h-4" /> Correct
-            </div>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-semibold">
+              <CheckCircle2 className="size-3.5" /> Correct
+            </span>
           ) : isSkipped ? (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-500/10 text-gray-400 text-xs font-semibold">
-              <span className="w-4 h-4 flex items-center justify-center font-bold text-lg">-</span> Skipped
-            </div>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700 text-xs font-semibold">
+              <MinusCircle className="size-3.5" /> Skipped
+            </span>
           ) : (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 text-red-400 text-xs font-semibold">
-              <XCircle className="w-4 h-4" /> Incorrect
-            </div>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-semibold">
+              <XCircle className="size-3.5" /> Incorrect
+            </span>
           )}
         </div>
       </div>
 
-      {/* Options */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+      {/* Options Matrix */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
         {options.map((option) => {
           const letter = option.charAt(0).toUpperCase();
           const isUserSelection = userAnswer === letter;
           const isActualCorrect = correctAnswer === letter;
 
-          let optionStyle = "border-dark-300 bg-dark-300/40 text-gray-400"; // Default
+          let optionStyle = "border-slate-800 bg-slate-900/40 text-slate-400";
           
           if (isActualCorrect) {
-            optionStyle = "border-green-500/50 bg-green-500/10 text-green-300 font-medium";
+            optionStyle = "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 font-medium";
           } else if (isUserSelection && !isActualCorrect) {
             optionStyle = "border-red-500/50 bg-red-500/10 text-red-300 font-medium";
           }
@@ -71,23 +70,37 @@ const AptitudeResultCard = ({
           return (
             <div
               key={option}
-              className={`px-4 py-3 rounded-xl border text-sm ${optionStyle}`}
+              className={`flex items-start gap-2.5 p-3 rounded-lg border text-xs sm:text-sm leading-relaxed ${optionStyle}`}
             >
-              {option}
+              <span className="font-semibold">{letter}.</span>
+              <span className="flex-1">{option.replace(/^[A-Za-z][.)]\s*/, "")}</span>
+              {isActualCorrect && (
+                <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-500/20">
+                  Correct
+                </span>
+              )}
+              {isUserSelection && !isActualCorrect && (
+                <span className="text-[10px] uppercase font-bold tracking-wider text-red-400 px-1.5 py-0.5 rounded bg-red-500/20">
+                  Your Answer
+                </span>
+              )}
             </div>
           );
         })}
       </div>
 
-      {/* Explanation */}
-      <div className="mt-2 p-4 rounded-xl bg-dark-300/50 border border-dark-300">
-        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-          Explanation
-        </h4>
-        <p className="text-sm text-gray-300 leading-relaxed">
-          {explanation || "No explanation provided."}
-        </p>
-      </div>
+      {/* Structured Explanation Box */}
+      {explanation && (
+        <div className="mt-2 p-4 rounded-lg bg-slate-950/60 border border-slate-800/80 flex flex-col gap-1.5">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-blue-400 uppercase tracking-wider">
+            <Lightbulb className="size-3.5" />
+            <span>Explanation & Solution</span>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            {explanation}
+          </p>
+        </div>
+      )}
     </div>
   );
 };

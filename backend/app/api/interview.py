@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from app.api.auth import verify_backend_auth
 from app.models.schemas import (
     CreateFeedbackRequest,
     CreateFeedbackResponse,
@@ -12,7 +13,11 @@ from datetime import datetime
 import random
 
 
-router = APIRouter(prefix="/api/interview", tags=["interview"])
+router = APIRouter(
+    prefix="/api/interview",
+    tags=["interview"],
+    dependencies=[Depends(verify_backend_auth)]
+)
 
 
 INTERVIEW_COVERS = [

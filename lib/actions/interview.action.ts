@@ -27,21 +27,38 @@ export async function getLatestInterviews(
     .collection("interviews")
     .orderBy("createdAt", "desc")
     .where("finalized", "==", true)
-    .where("userId", "!=", userId)
     .limit(limit)
     .get();
 
-  return interviews.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Interview[];
+  return (
+    interviews.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Interview[]
+  ).filter((doc) => doc.userId !== userId);
 }
 
 export async function getInterviewById(id: string): Promise<Interview | null> {
   const interview = await db.collection("interviews").doc(id).get();
 
-  return interview.data() as Interview | null;
+  if (!interview.exists) return null;
+
+  return {
+    id: interview.id,
+    ...interview.data(),
+  } as Interview;
 }
+
+const getBackendHeaders = () => {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const secret = process.env.BACKEND_SECRET_KEY;
+  if (secret) {
+    headers["x-internal-secret"] = secret;
+  }
+  return headers;
+};
 
 export async function createFeedback(params: CreateFeedbackParams) {
   const { interviewId, userId, transcript, feedbackId } = params;
@@ -54,7 +71,7 @@ export async function createFeedback(params: CreateFeedbackParams) {
     const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
     const response = await fetch(`${backendUrl}/api/interview/feedback`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getBackendHeaders(),
       body: JSON.stringify({
         interview_id: interviewId,
         user_id: userId,
@@ -108,8 +125,44 @@ export async function getFeedbackByInterviewId(
   return { id: feedbackDoc.id, ...feedbackDoc.data() } as Feedback;
 }
 
+export async function getFeedbackMapByUserId(
+  userId: string
+): Promise<Record<string, Feedback>> {
+  if (!userId) return {};
+
+  try {
+    const querySnapshot = await db
+      .collection("feedback")
+      .where("userId", "==", userId)
+      .get();
+
+    const feedbackMap: Record<string, Feedback> = {};
+    querySnapshot.docs.forEach((doc) => {
+      const data = doc.data();
+      if (data.interviewId) {
+        feedbackMap[data.interviewId] = {
+          id: doc.id,
+          ...data,
+        } as Feedback;
+      }
+    });
+
+    return feedbackMap;
+  } catch (error) {
+    console.error("Error batch fetching user feedback:", error);
+    return {};
+  }
+}
+
 export async function createCustomInterview(params: CreateCustomInterviewParams) {
   const { role, type, level, techstack, questions, userId } = params;
+
+  if (!userId) {
+    return {
+      success: false,
+      error: "User authentication required to create an interview template",
+    };
+  }
 
   try {
     const interview = {
@@ -119,7 +172,7 @@ export async function createCustomInterview(params: CreateCustomInterviewParams)
       techstack: techstack.split(",").map((tech) => tech.trim()),
       questions,
       userId,
-      finalized: false,
+      finalized: true,
       coverImage: getRandomInterviewCover(),
       createdAt: new Date().toISOString(),
     };
@@ -147,7 +200,7 @@ export async function generateAptitudeQuestions(
     const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
     const response = await fetch(`${backendUrl}/api/aptitude/generate`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getBackendHeaders(),
       body: JSON.stringify({
         category,
         amount,
@@ -165,14 +218,23 @@ export async function generateAptitudeQuestions(
 
     if (result.success && result.questions) {
       // Map snake_case from backend to camelCase for frontend
-      const questions: MCQQuestion[] = result.questions.map((q: any) => ({
-        id: q.id,
-        question: q.question,
-        options: q.options,
-        correctAnswer: q.correct_answer,
-        explanation: q.explanation,
-        difficulty: q.difficulty,
-      }));
+      const questions: MCQQuestion[] = result.questions.map(
+        (q: {
+          id: string;
+          question: string;
+          options: string[];
+          correct_answer: string;
+          explanation: string;
+          difficulty: "easy" | "medium" | "hard";
+        }) => ({
+          id: q.id,
+          question: q.question,
+          options: q.options,
+          correctAnswer: q.correct_answer,
+          explanation: q.explanation,
+          difficulty: q.difficulty,
+        })
+      );
       return { success: true, questions };
     }
 
@@ -193,7 +255,7 @@ export async function saveAptitudeResult(
     const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
     const response = await fetch(`${backendUrl}/api/aptitude/result`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getBackendHeaders(),
       body: JSON.stringify({
         user_id: params.userId,
         category: params.category,
@@ -237,6 +299,7 @@ export async function getAptitudeResultsByUser(
     const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
     const response = await fetch(`${backendUrl}/api/aptitude/results/${userId}`, {
       cache: "no-store",
+      headers: getBackendHeaders(),
     });
 
     if (!response.ok) return [];
@@ -244,24 +307,43 @@ export async function getAptitudeResultsByUser(
     const data = await response.json();
     if (!data.success || !data.results) return [];
 
-    return data.results.map((r: any) => ({
-      id: r.id,
-      userId: r.userId,
-      category: r.category,
-      score: r.score,
-      totalQuestions: r.totalQuestions,
-      percentage: r.percentage,
-      answers: (r.answers || []).map((a: any) => ({
-        questionId: a.question_id,
-        selected: a.selected,
-        correct: a.correct,
-        isCorrect: a.is_correct,
-        questionText: a.question_text,
-        options: a.options,
-        explanation: a.explanation,
-      })),
-      createdAt: r.createdAt,
-    }));
+    return data.results.map(
+      (r: {
+        id?: string;
+        userId: string;
+        category: string;
+        score: number;
+        totalQuestions: number;
+        percentage: number;
+        answers?: Array<{
+          question_id: string;
+          selected: string;
+          correct: string;
+          is_correct: boolean;
+          question_text?: string;
+          options?: string[];
+          explanation?: string;
+        }>;
+        createdAt: string;
+      }) => ({
+        id: r.id,
+        userId: r.userId,
+        category: r.category,
+        score: r.score,
+        totalQuestions: r.totalQuestions,
+        percentage: r.percentage,
+        answers: (r.answers || []).map((a) => ({
+          questionId: a.question_id,
+          selected: a.selected,
+          correct: a.correct,
+          isCorrect: a.is_correct,
+          questionText: a.question_text,
+          options: a.options,
+          explanation: a.explanation,
+        })),
+        createdAt: r.createdAt,
+      })
+    );
   } catch (error) {
     console.error("Error fetching aptitude results:", error);
     return [];

@@ -7,12 +7,16 @@ export async function POST(request: Request) {
 
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (process.env.BACKEND_SECRET_KEY) {
+      headers["x-internal-secret"] = process.env.BACKEND_SECRET_KEY;
+    }
     
     const response = await fetch(`${apiUrl}/api/interview/generate`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({
         role,
         level,
@@ -29,12 +33,13 @@ export async function POST(request: Request) {
       return Response.json({ success: true }, { status: 200 });
     } else {
       return Response.json(
-        { success: false, error: result.error },
+        { success: false, error: result.error || "Generation failed" },
         { status: 500 }
       );
     }
   } catch (error) {
     console.error("Error:", error);
-    return Response.json({ success: false, error: error }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "Internal server error";
+    return Response.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }

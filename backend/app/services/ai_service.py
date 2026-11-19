@@ -52,9 +52,9 @@ class GeminiKeyManager:
         genai.configure(api_key=self.current_key)
         return genai.GenerativeModel(model_name)
 
-    def generate_with_fallback(self, prompt: str, model_name: str = "gemini-2.5-flash") -> str:
+    async def generate_with_fallback(self, prompt: str, model_name: str = "gemini-2.5-flash") -> str:
         """
-        Try to generate content using the current key. On rate-limit, rotate and retry
+        Try to generate content using the current key asynchronously. On rate-limit, rotate and retry
         until all keys are tried. Raises the last exception if all fail.
         """
         attempts = 0
@@ -63,7 +63,7 @@ class GeminiKeyManager:
         while attempts < len(self._keys):
             try:
                 model = self.build_model(model_name)
-                response = model.generate_content(prompt)
+                response = await model.generate_content_async(prompt)
                 return response.text.strip()
             except ResourceExhausted as e:
                 logger.warning(
@@ -136,7 +136,7 @@ Return your response in the following JSON format:
 """
 
         try:
-            response_text = self._key_manager.generate_with_fallback(prompt)
+            response_text = await self._key_manager.generate_with_fallback(prompt)
 
             # Extract JSON from response (handle markdown code blocks)
             json_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
@@ -210,15 +210,15 @@ Do not include any markdown formatting or code blocks, just the raw JSON array.
 """
 
         try:
-            response_text = self._key_manager.generate_with_fallback(prompt)
+            response_text = await self._key_manager.generate_with_fallback(prompt)
 
             # Extract JSON array from response
             json_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
             if json_match:
                 response_text = json_match.group(1)
 
-            # Find the JSON array
-            array_match = re.search(r'\[.*?\]', response_text, re.DOTALL)
+            # Find the JSON array (greedy match)
+            array_match = re.search(r'\[.*\]', response_text, re.DOTALL)
             if array_match:
                 response_text = array_match.group(0)
 
@@ -257,7 +257,7 @@ Category guidelines:
 Return ONLY the JSON array. No markdown. No additional text.
 """
         try:
-            response_text = self._key_manager.generate_with_fallback(prompt)
+            response_text = await self._key_manager.generate_with_fallback(prompt)
 
             # Strip markdown code fences if present
             json_match = re.search(r'```(?:json)?\s*(.*?)\s*```', response_text, re.DOTALL)

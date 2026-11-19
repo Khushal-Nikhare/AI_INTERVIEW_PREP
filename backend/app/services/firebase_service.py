@@ -16,8 +16,17 @@ class FirebaseService:
     def _initialize_firebase(self):
         """Initialize Firebase Admin SDK"""
         if not firebase_admin._apps:
-            # Format the private key properly
-            private_key = settings.firebase_private_key.replace('\\n', '\n')
+            # Format and normalize the private key properly
+            raw_key = settings.firebase_private_key or ""
+            # Strip surrounding quotes if passed with quotes from env files
+            if (raw_key.startswith('"') and raw_key.endswith('"')) or (raw_key.startswith("'") and raw_key.endswith("'")):
+                raw_key = raw_key[1:-1]
+            
+            # Normalize literal \n to actual newlines
+            private_key = raw_key.replace('\\n', '\n').strip()
+            # Ensure trailing newline for standard PEM format
+            if private_key and not private_key.endswith('\n'):
+                private_key += '\n'
             
             cred_dict = {
                 "type": "service_account",

@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from app.api.auth import verify_backend_auth
 from app.models.schemas import (
     GenerateAptitudeRequest,
     GenerateAptitudeResponse,
@@ -9,8 +10,13 @@ from app.models.schemas import (
 from app.services.ai_service import ai_service
 from app.services.firebase_service import firebase_service
 from datetime import datetime, timezone
+from google.cloud.firestore_v1.base_query import FieldFilter
 
-router = APIRouter(prefix="/api/aptitude", tags=["aptitude"])
+router = APIRouter(
+    prefix="/api/aptitude",
+    tags=["aptitude"],
+    dependencies=[Depends(verify_backend_auth)]
+)
 
 
 @router.post("/generate", response_model=GenerateAptitudeResponse)
@@ -66,7 +72,7 @@ async def get_aptitude_results(user_id: str):
 
         query = (
             db.collection("aptitudeResults")
-            .where("userId", "==", user_id)
+            .where(filter=FieldFilter("userId", "==", user_id))
             .order_by("createdAt", direction="DESCENDING")
             .limit(20)
         )

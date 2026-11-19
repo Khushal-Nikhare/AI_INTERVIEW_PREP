@@ -38,4 +38,29 @@ function initFirebaseAdmin() {
   };
 }
 
-export const { auth, db } = initFirebaseAdmin();
+let _auth: ReturnType<typeof getAuth> | null = null;
+let _db: ReturnType<typeof getFirestore> | null = null;
+
+
+export const auth = new Proxy({} as ReturnType<typeof getAuth>, {
+  get(_target, prop) {
+    if (!_auth) {
+      const initialized = initFirebaseAdmin();
+      _auth = initialized.auth;
+      _db = initialized.db;
+    }
+    return (_auth as any)[prop];
+  },
+});
+
+export const db = new Proxy({} as ReturnType<typeof getFirestore>, {
+  get(_target, prop) {
+    if (!_db) {
+      const initialized = initFirebaseAdmin();
+      _auth = initialized.auth;
+      _db = initialized.db;
+    }
+    return (_db as any)[prop];
+  },
+});
+

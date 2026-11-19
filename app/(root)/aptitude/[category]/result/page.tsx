@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/actions/auth.action";
 import { getAptitudeResultsByUser } from "@/lib/actions/interview.action";
 import { CATEGORY_META } from "@/components/AptitudeCard";
 import AptitudeResultCard from "@/components/AptitudeResultCard";
+import { Award, RotateCcw, ListChecks, CheckCircle2, ChevronLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const AptitudeResultPage = async ({
   params,
@@ -23,74 +25,110 @@ const AptitudeResultPage = async ({
   let resultData: AptitudeResult | null = null;
 
   if (resultId) {
-    // Fetch result from backend
     const allResults = await getAptitudeResultsByUser(user.id);
     resultData = allResults.find((r) => r.id === resultId) || null;
   }
 
-  // If no resultId or fetch failed, use fallback from URL (without question details)
   const score = resultData ? resultData.score : Number(fallbackScore) || 0;
   const total = resultData ? resultData.totalQuestions : Number(fallbackTotal) || 20;
   const percentage = resultData ? resultData.percentage : Math.round((score / total) * 100);
 
-  const getScoreMessage = (pct: number) => {
-    if (pct >= 90) return "Excellent! Outstanding performance.";
-    if (pct >= 75) return "Great job! Very solid understanding.";
-    if (pct >= 50) return "Good effort, but room for improvement.";
-    return "Needs work. Keep practicing!";
+  const getScoreAssessment = (pct: number) => {
+    if (pct >= 90) return { text: "Outstanding Proficiency", desc: "Top tier performance across all core competencies." };
+    if (pct >= 75) return { text: "Strong Mastery", desc: "Solid conceptual grasp with high accuracy." };
+    if (pct >= 50) return { text: "Competent Baseline", desc: "Good foundation, targeted practice recommended." };
+    return { text: "Development Required", desc: "Review foundational concepts and problem solving techniques." };
   };
 
+  const assessment = getScoreAssessment(percentage);
+
   return (
-    <div className="flex flex-col gap-10 py-8 max-w-4xl mx-auto w-full">
-      {/* ── Header ── */}
-      <div className="flex flex-col items-center text-center gap-4">
-        <span className="text-5xl">{meta.icon}</span>
-        <h1 className="text-4xl font-bold text-white">Test Completed</h1>
-        <p className="text-xl text-gray-400">{meta.label}</p>
+    <div className="flex flex-col gap-8 max-w-4xl mx-auto w-full">
+      {/* ── Breadcrumb & Category Tag ── */}
+      <div className="flex items-center justify-between">
+        <Link
+          href="/aptitude"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
+        >
+          <ChevronLeft className="size-4" />
+          <span>Back to Assessment Hub</span>
+        </Link>
+        <span className="text-xs uppercase font-semibold tracking-wider text-slate-400 px-2.5 py-1 rounded-md bg-slate-900 border border-slate-800">
+          {meta.label}
+        </span>
       </div>
 
-      {/* ── Score Card ── */}
-      <div className="bg-dark-200 border border-dark-300 rounded-3xl p-8 md:p-12 flex flex-col items-center gap-6 shadow-2xl relative overflow-hidden">
-        {/* Decorative background glow based on score */}
-        <div 
-          className={`absolute inset-0 opacity-10 blur-3xl rounded-full ${
-            percentage >= 80 ? 'bg-green-500' : percentage >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-          }`} 
-        />
+      {/* ── High-Impact Score Card ── */}
+      <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 p-8 sm:p-10 flex flex-col md:flex-row items-center justify-between gap-8 shadow-sm">
+        <div className="flex flex-col gap-2 text-center md:text-left">
+          <div className="inline-flex items-center gap-2 text-xs font-semibold text-blue-400 uppercase tracking-wider">
+            <Award className="size-4" />
+            <span>Official Examination Result</span>
+          </div>
 
-        <h2 className="text-2xl font-semibold text-gray-200 z-10">Your Score</h2>
-        
-        <div className="flex items-baseline gap-2 z-10">
-          <span className={`text-7xl font-bold ${
-            percentage >= 80 ? "text-green-400" : percentage >= 50 ? "text-yellow-400" : "text-red-400"
-          }`}>
-            {score}
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+            {assessment.text}
+          </h1>
+
+          <p className="text-xs sm:text-sm text-slate-400 max-w-md">
+            {assessment.desc}
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-4">
+            <Button asChild className="btn-primary" size="sm">
+              <Link href={`/aptitude/${category}`} className="flex items-center gap-1.5">
+                <RotateCcw className="size-3.5" />
+                <span>Retake Examination</span>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="btn-secondary" size="sm">
+              <Link href="/aptitude" className="flex items-center gap-1.5">
+                <ListChecks className="size-3.5" />
+                <span>All Categories</span>
+              </Link>
+            </Button>
+          </div>
+        </div>
+
+        {/* Circular / Stat Pill */}
+        <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-slate-950/80 border border-slate-800 min-w-48 text-center">
+          <span className="text-xs uppercase font-medium text-slate-400 tracking-wider mb-1">
+            Total Score
           </span>
-          <span className="text-3xl text-gray-500">/ {total}</span>
-        </div>
-        
-        <div className="flex flex-col items-center gap-1 z-10">
-          <span className="text-lg font-medium text-white">{percentage}%</span>
-          <p className="text-gray-400">{getScoreMessage(percentage)}</p>
-        </div>
-
-        <div className="flex gap-4 mt-4 w-full md:w-auto z-10">
-          <Link href="/aptitude" className="btn-secondary flex-1 md:w-48 text-center justify-center">
-            View All Tests
-          </Link>
-          <Link href={`/aptitude/${category}`} className="btn-primary flex-1 md:w-48 text-center justify-center">
-            Retake Test
-          </Link>
+          <div className="flex items-baseline gap-1">
+            <span className={`text-5xl font-bold tracking-tight ${
+              percentage >= 80 ? "text-emerald-400" : percentage >= 50 ? "text-amber-400" : "text-red-400"
+            }`}>
+              {score}
+            </span>
+            <span className="text-xl text-slate-500 font-medium">/{total}</span>
+          </div>
+          <span className={`mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+            percentage >= 80
+              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+              : percentage >= 50
+              ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+              : "bg-red-500/10 text-red-400 border-red-500/20"
+          }`}>
+            {percentage}% Accuracy
+          </span>
         </div>
       </div>
 
-      {/* ── Question Breakdown ── */}
+      {/* ── Question Breakdown Stream ── */}
       {resultData && resultData.answers && resultData.answers.length > 0 && (
-        <div className="flex flex-col gap-6 mt-8">
-          <h3 className="text-2xl font-bold text-white mb-2">Question Breakdown</h3>
+        <section className="flex flex-col gap-4 mt-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ListChecks className="size-5 text-blue-400" />
+              <h2 className="text-lg sm:text-xl font-semibold text-white tracking-tight">Question Analysis & Solutions</h2>
+            </div>
+            <span className="text-xs text-slate-400">
+              {resultData.answers.filter((a) => a.isCorrect).length} Correct of {resultData.answers.length}
+            </span>
+          </div>
           
-          <div className="flex flex-col gap-5">
-            {/* If we have the full question data (new format), show detailed cards */}
+          <div className="flex flex-col gap-4">
             {resultData.answers[0].questionText ? (
               resultData.answers.map((ans, i) => (
                 <AptitudeResultCard
@@ -104,36 +142,14 @@ const AptitudeResultPage = async ({
                 />
               ))
             ) : (
-              /* Fallback for old results that only saved the answer keys */
-              <div className="bg-dark-200 border border-dark-300 rounded-xl p-6">
-                <p className="text-gray-400 italic text-center">
-                  Detailed question review is not available for this older test attempt.
+              <div className="rounded-xl bg-slate-900/60 border border-slate-800 p-6 text-center">
+                <p className="text-slate-400 text-sm italic">
+                  Detailed question review is unavailable for this older attempt format.
                 </p>
-                <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                  {resultData.answers.map((ans, i) => (
-                    <div key={i} className={`flex flex-col items-center p-3 rounded-lg border ${
-                      ans.isCorrect ? 'bg-green-500/10 border-green-500/30' : 
-                      !ans.selected ? 'bg-gray-500/10 border-gray-500/30' :
-                      'bg-red-500/10 border-red-500/30'
-                    }`}>
-                      <span className="text-xs text-gray-500 font-medium mb-1">Q{i + 1}</span>
-                      <span className={`text-lg font-bold ${
-                        ans.isCorrect ? 'text-green-400' : 
-                        !ans.selected ? 'text-gray-400' :
-                        'text-red-400'
-                      }`}>
-                        {ans.selected || "-"}
-                      </span>
-                      {!ans.isCorrect && ans.selected && (
-                        <span className="text-xs text-green-500 font-medium mt-1">Ans: {ans.correct}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
           </div>
-        </div>
+        </section>
       )}
     </div>
   );

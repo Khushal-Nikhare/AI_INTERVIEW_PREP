@@ -2,6 +2,8 @@ import React from "react";
 import AptitudeCard, { CATEGORY_META } from "@/components/AptitudeCard";
 import { getCurrentUser } from "@/lib/actions/auth.action";
 import { getAptitudeResultsByUser } from "@/lib/actions/interview.action";
+import Link from "next/link";
+import { ArrowRight, CheckSquare, History, Sparkles } from "lucide-react";
 
 const AptitudeHubPage = async () => {
   const user = await getCurrentUser();
@@ -23,7 +25,6 @@ const AptitudeHubPage = async () => {
     if (result.score > stats.bestScore) {
       stats.bestScore = result.score;
     }
-    // Update last attempt if this result is newer
     if (new Date(result.createdAt) > new Date(stats.lastAttempt)) {
       stats.lastAttempt = result.createdAt;
     }
@@ -32,16 +33,24 @@ const AptitudeHubPage = async () => {
   const categories = Object.keys(CATEGORY_META);
 
   return (
-    <div className="flex flex-col gap-10 py-8 max-w-7xl mx-auto w-full">
-      <section className="flex flex-col gap-4">
-        <h1 className="text-3xl font-bold text-white">Aptitude Tests</h1>
-        <p className="text-gray-400 max-w-2xl text-lg">
-          Sharpen your cognitive skills with our AI-generated aptitude tests. 
-          Choose a category below to start a 30-minute timed test.
+    <div className="flex flex-col gap-10">
+      {/* ── Hub Header ── */}
+      <section className="flex flex-col gap-3">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium w-fit">
+          <CheckSquare className="size-3.5" />
+          <span>Placement & Corporate Readiness Tests</span>
+        </div>
+
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white">
+          Aptitude Assessment Center
+        </h1>
+        <p className="text-sm sm:text-base text-slate-400 max-w-2xl leading-relaxed">
+          Master quantitative problem solving, logical deduction, and verbal accuracy with dynamically generated 20-question, 30-minute timed tests.
         </p>
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+      {/* ── Category Cards Grid ── */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {categories.map((category) => {
           const stats = categoryStats[category];
           return (
@@ -56,40 +65,63 @@ const AptitudeHubPage = async () => {
         })}
       </section>
       
+      {/* ── Recent Activity Table ── */}
       {pastResults.length > 0 && (
-        <section className="mt-10 flex flex-col gap-6">
-          <h2 className="text-2xl font-bold text-white">Recent Activity</h2>
-          <div className="bg-dark-200 border border-dark-300 rounded-xl overflow-hidden">
+        <section className="flex flex-col gap-4 mt-4">
+          <div className="flex items-center gap-2">
+            <History className="size-5 text-blue-400" />
+            <h2 className="text-lg sm:text-xl font-semibold text-white tracking-tight">Attempt History</h2>
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/60 shadow-xs">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-dark-300 text-gray-400">
+              <table className="w-full text-left text-xs sm:text-sm">
+                <thead className="bg-slate-900 border-b border-slate-800 text-slate-400 text-xs font-medium uppercase tracking-wider">
                   <tr>
-                    <th className="px-6 py-4 font-medium">Category</th>
-                    <th className="px-6 py-4 font-medium">Score</th>
-                    <th className="px-6 py-4 font-medium">Percentage</th>
-                    <th className="px-6 py-4 font-medium">Date</th>
+                    <th className="px-5 py-3.5">Category</th>
+                    <th className="px-5 py-3.5">Score</th>
+                    <th className="px-5 py-3.5">Performance</th>
+                    <th className="px-5 py-3.5">Date Attempted</th>
+                    <th className="px-5 py-3.5 text-right">Review</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-dark-300">
-                  {pastResults.slice(0, 5).map((result) => (
-                    <tr key={result.id} className="hover:bg-dark-300/50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-white capitalize">
+                <tbody className="divide-y divide-slate-800/80 text-slate-300">
+                  {pastResults.map((result) => (
+                    <tr key={result.id} className="hover:bg-slate-850/50 transition-colors">
+                      <td className="px-5 py-4 font-medium text-white capitalize">
                         {result.category.replace("_", " ")}
                       </td>
-                      <td className="px-6 py-4 text-gray-300">
+                      <td className="px-5 py-4 text-slate-300">
                         {result.score} / {result.totalQuestions}
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          result.percentage >= 80 ? "bg-green-500/10 text-green-400" :
-                          result.percentage >= 50 ? "bg-yellow-500/10 text-yellow-400" :
-                          "bg-red-500/10 text-red-400"
+                      <td className="px-5 py-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                          result.percentage >= 80
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                            : result.percentage >= 50
+                            ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                            : "bg-red-500/10 text-red-400 border-red-500/20"
                         }`}>
                           {result.percentage}%
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-gray-400">
-                        {new Date(result.createdAt).toLocaleDateString()}
+                      <td className="px-5 py-4 text-slate-400">
+                        {new Date(result.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <Link
+                          href={`/aptitude/${result.category}/result?resultId=${result.id}`}
+                          className="text-blue-400 hover:text-blue-300 font-medium inline-flex items-center gap-1 transition-colors"
+                        >
+                          <span>Details</span>
+                          <ArrowRight className="size-3" />
+                        </Link>
                       </td>
                     </tr>
                   ))}

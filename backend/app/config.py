@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     port: int = 8000
     reload: bool = True
     
+    # Security / Internal Secret
+    backend_secret_key: str = ""
+    
     # CORS
     allowed_origins: str = "http://localhost:3000,http://localhost:3001"
     
